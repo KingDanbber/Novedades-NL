@@ -1,5 +1,5 @@
 /* Service Worker - Novedades N&L PWA */
-const CACHE = 'novedades-nl-v1.1';
+const CACHE = 'novedades-nl-v1.2';
 const ASSETS = [
   './',
   './index.html',
