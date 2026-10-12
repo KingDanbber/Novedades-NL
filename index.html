@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Novedades N&L - Sistema de administración de inventario y ventas">
+  <meta name="theme-color" content="#0d9488">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Novedades N&L">
+  <title>Novedades N&L — Administración</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/utilities.css">
+  <!-- Early theme to avoid FOUC -->
+  <script>
+    (function() {
+      const stored = localStorage.getItem('theme-preference');
+      const theme = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+
+  <!-- LOGIN SCREEN -->
+  <div id="authScreen" class="auth-screen is-visible">
+    <div class="auth-card">
+      <div class="auth-card__brand">
+        <img src="assets/logo.png" alt="Novedades N&L" class="auth-logo" width="120" height="120">
+        <h1>Novedades <span style="color:var(--color-primary)">N&L</span></h1>
+        <p class="text-muted">Solo para uso familiar</p>
+      </div>
+
+      <!-- Login form -->
+      <form class="form auth-form is-visible" id="loginForm">
+        <div class="form__group">
+          <label class="form__label" for="loginEmail">Correo electrónico</label>
+          <input type="email" class="form__input" id="loginEmail" required autocomplete="email" placeholder="tu@correo.com">
+        </div>
+        <div class="form__group">
+          <label class="form__label" for="loginPassword">Contraseña</label>
+          <input type="password" class="form__input" id="loginPassword" required autocomplete="current-password" minlength="6" placeholder="Mínimo 6 caracteres">
+        </div>
+        <p class="form__error" id="loginError" style="display:none;"></p>
+        <button type="submit" class="btn btn--primary w-full">Iniciar sesión</button>
+        <div class="auth-links">
+          <button type="button" class="btn btn--ghost btn--sm" id="showRegister">Crear cuenta</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="showForgot">Olvidé mi contraseña</button>
+        </div>
+      </form>
+
+      <!-- Register form -->
+      <form class="form auth-form" id="registerForm">
+        <div class="form__group">
+          <label class="form__label" for="regName">Tu nombre <span class="required">*</span></label>
+          <input type="text" class="form__input" id="regName" required minlength="2" placeholder="Ej. Ana, Luis">
+          <p class="form__hint">Aparecerá como vendedor en cada venta</p>
+        </div>
+        <div class="form__group">
+          <label class="form__label" for="regEmail">Correo electrónico</label>
+          <input type="email" class="form__input" id="regEmail" required autocomplete="email">
+        </div>
+        <div class="form__group">
+          <label class="form__label" for="regPassword">Contraseña</label>
+          <input type="password" class="form__input" id="regPassword" required minlength="6" autocomplete="new-password">
+        </div>
+        <p class="form__error" id="registerError" style="display:none;"></p>
+        <button type="submit" class="btn btn--primary w-full">Crear cuenta e iniciar</button>
+        <div class="auth-links">
+          <button type="button" class="btn btn--ghost btn--sm" id="showLoginFromReg">Ya tengo cuenta</button>
+        </div>
+      </form>
+
+      <!-- Forgot password -->
+      <form class="form auth-form" id="forgotForm">
+        <p class="text-muted" style="font-size:var(--text-sm);margin-bottom:var(--space-3);">Ingresa tu correo. En modo demo se genera una contraseña temporal.</p>
+        <div class="form__group">
+          <label class="form__label" for="forgotEmail">Correo electrónico</label>
+          <input type="email" class="form__input" id="forgotEmail" required>
+        </div>
+        <p class="form__error" id="forgotError" style="display:none;"></p>
+        <p class="text-success" id="forgotSuccess" style="display:none;font-size:var(--text-sm);"></p>
+        <button type="submit" class="btn btn--primary w-full">Recuperar contraseña</button>
+        <div class="auth-links">
+          <button type="button" class="btn btn--ghost btn--sm" id="showLoginFromForgot">Volver al inicio de sesión</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="app is-hidden" id="appRoot">
+    <!-- Header -->
+    <header class="header">
+      <button type="button" class="header__menu-btn" id="menuBtn" aria-label="Abrir menú">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <div class="header__brand">
+        <img src="assets/logo.png" alt="Novedades N&L" class="header__logo-img" width="36" height="36">
+        <h1 class="header__title">Novedades <span>N&L</span></h1>
+      </div>
+      <div class="header__actions">
+        <span class="user-chip" id="userChip" title="Usuario activo"></span>
+        <button type="button" class="btn btn--ghost btn--sm" id="btnLogout" aria-label="Cerrar sesión" title="Cerrar sesión">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Cambiar tema">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Sidebar overlay (mobile) -->
+      <div class="sidebar__overlay" id="sidebarOverlay"></div>
+
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <nav class="sidebar__nav" aria-label="Navegación principal">
+          <a href="#dashboard" class="sidebar__link is-active" data-page="dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/>
+              <rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>
+            </svg>
+            Dashboard
+          </a>
+          <a href="#productos" class="sidebar__link" data-page="productos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+            Productos
+          </a>
+          <a href="#ventas" class="sidebar__link" data-page="ventas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            Ventas
+          </a>
+          <a href="#clientes" class="sidebar__link" data-page="clientes">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Clientes
+          </a>
+          <a href="#reportes" class="sidebar__link" data-page="reportes">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            Reportes
+          </a>
+          <a href="#config" class="sidebar__link" data-page="config">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            Configuración
+          </a>
+        </nav>
+      </aside>
+
+      <!-- Main content -->
+      <main id="main" class="content">
+        <!-- DASHBOARD -->
+        <section class="page is-active" id="page-dashboard" data-page="dashboard">
+          <div class="page__header">
+            <div>
+              <h2 class="page__title">Dashboard</h2>
+              <p class="page__subtitle">Resumen de tu negocio</p>
+            </div>
+          </div>
+
+          <div class="kpi-grid" id="kpiGrid">
+            <!-- Filled by JS -->
+          </div>
+
+          <div class="section">
+            <div class="section__header">
+              <h3 class="section__title">Últimos movimientos</h3>
+            </div>
+            <div class="activity-list" id="activityList">
+              <!-- Filled by JS -->
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section__header">
+              <h3 class="section__title">Productos con stock bajo</h3>
+            </div>
+            <div class="table-wrapper">
+              <table class="table" id="lowStockTable">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>Stock</th>
+                    <th>Precio venta</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- PRODUCTOS -->
+        <section class="page" id="page-productos" data-page="productos">
+          <div class="page__header">
+            <div>
+              <h2 class="page__title">Productos</h2>
+              <p class="page__subtitle">Inventario y catálogo</p>
+            </div>
+            <div class="flex gap-2">
+              <button type="button" class="btn btn--secondary btn--sm" id="btnRestock">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                Resurtir
+              </button>
+              <button type="button" class="btn btn--primary" id="btnAddProduct">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Agregar
+              </button>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="search" id="productSearch" placeholder="Buscar producto..." aria-label="Buscar productos">
+            </div>
+            <select class="form__select" id="productCategoryFilter" style="max-width: 10rem;">
+              <option value="">Todas las categorías</option>
+            </select>
+          </div>
+
+          <div class="product-grid" id="productGrid">
+            <!-- Filled by JS -->
+          </div>
+        </section>
+
+        <!-- VENTAS -->
+        <section class="page" id="page-ventas" data-page="ventas">
+          <div class="page__header">
+            <div>
+              <h2 class="page__title">Ventas</h2>
+              <p class="page__subtitle">Registro y seguimiento de pagos</p>
+            </div>
+            <button type="button" class="btn btn--primary" id="btnAddSale">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Nueva venta
+            </button>
+          </div>
+
+          <div class="toolbar">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="search" id="saleSearch" placeholder="Buscar por cliente..." aria-label="Buscar ventas">
+            </div>
+            <select class="form__select" id="saleStatusFilter" style="max-width: 10rem;">
+              <option value="">Todos los estados</option>
+              <option value="paid">Pagado</option>
+              <option value="partial">Parcial</option>
+              <option value="pending">Pendiente</option>
+            </select>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="table" id="salesTable">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Cliente</th>
+                  <th>Vendedor</th>
+                  <th>Total</th>
+                  <th>Pagado</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- CLIENTES -->
+        <section class="page" id="page-clientes" data-page="clientes">
+          <div class="page__header">
+            <div>
+              <h2 class="page__title">Clientes</h2>
+              <p class="page__subtitle">Directorio de clientes</p>
+            </div>
+            <button type="button" class="btn btn--primary" id="btnAddClient">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Agregar
+            </button>
+          </div>
+
+          <div class="toolbar">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="search" id="clientSearch" placeholder="Buscar cliente..." aria-label="Buscar clientes">
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="table" id="clientsTable">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Área</th>
+                  <th>WhatsApp</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- REPORTES -->
+        <section class="page" id="page-reportes" data-page="reportes">
+          <div class="page__header">
+            <div>
+              <h2 class="page__title">Reportes</h2>
+              <p class="page__subtitle">Análisis mensual y tendencias</p>
+            </div>
+            <select class="form__select" id="reportMonth" style="max-width: 12rem;">
+              <!-- Filled by JS -->
+            </select>
+          </div>
+
+          <div class="kpi-grid" id="reportKpis">
+            <!-- Filled by JS -->
+          </div>
+
+          <div class="section">
+            <div class="section__header">
+              <h3 class="section__title">Ventas por día del mes</h3>
+            </div>
+            <div class="card">
+              <div class="chart-bars" id="salesChart">
+                <!-- Filled by JS -->
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section__header">
+              <h3 class="section__title">Top productos vendidos</h3>
+            </div>
+            <div class="table-wrapper">
+              <table class="table" id="topProductsTable">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Ingresos</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- CONFIG -->
+        <section class="page" id="page-config" data-page="config">
+          <div class="page__header">
+            <div>
+              <h2 class="page__title">Configuración</h2>
+              <p class="page__subtitle">Supabase, Cloudinary y datos</p>
+            </div>
+          </div>
+
+          <div class="config-banner" id="configBanner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <div>
+              <strong>Modo local (demo)</strong><br>
+              Los datos se guardan en el navegador (localStorage). Configura Supabase y Cloudinary abajo para producción.
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom: var(--space-6);">
+            <h3 class="section__title" style="margin-bottom: var(--space-4);">Supabase</h3>
+            <form class="form" id="supabaseForm">
+              <div class="form__group">
+                <label class="form__label" for="supabaseUrl">URL del proyecto</label>
+                <input type="url" class="form__input" id="supabaseUrl" placeholder="https://xxxx.supabase.co">
+              </div>
+              <div class="form__group">
+                <label class="form__label" for="supabaseKey">Anon / Public Key</label>
+                <input type="text" class="form__input" id="supabaseKey" placeholder="eyJhbGciOi...">
+              </div>
+              <div class="form__actions">
+                <button type="submit" class="btn btn--primary">Guardar Supabase</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card" style="margin-bottom: var(--space-6);">
+            <h3 class="section__title" style="margin-bottom: var(--space-4);">Cloudinary</h3>
+            <form class="form" id="cloudinaryForm">
+              <div class="form__group">
+                <label class="form__label" for="cloudName">Cloud Name</label>
+                <input type="text" class="form__input" id="cloudName" placeholder="tu-cloud-name">
+              </div>
+              <div class="form__group">
+                <label class="form__label" for="cloudPreset">Upload Preset (unsigned)</label>
+                <input type="text" class="form__input" id="cloudPreset" placeholder="ml_default">
+                <p class="form__hint">Crea un upload preset unsigned en Cloudinary Settings → Upload</p>
+              </div>
+              <div class="form__actions">
+                <button type="submit" class="btn btn--primary">Guardar Cloudinary</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card">
+            <h3 class="section__title" style="margin-bottom: var(--space-4);">Datos de demostración</h3>
+            <p class="text-muted" style="margin-bottom: var(--space-4); font-size: var(--text-sm);">
+              Puedes cargar datos de ejemplo o borrar todo el almacenamiento local.
+            </p>
+            <div class="form__actions">
+              <button type="button" class="btn btn--secondary" id="btnLoadDemo">Cargar datos demo</button>
+              <button type="button" class="btn btn--danger" id="btnClearData">Borrar todos los datos</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Bottom nav (mobile) -->
+    <nav class="bottom-nav" aria-label="Navegación móvil">
+      <a href="#dashboard" class="bottom-nav__link is-active" data-page="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/>
+          <rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>
+        </svg>
+        Inicio
+      </a>
+      <a href="#productos" class="bottom-nav__link" data-page="productos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        </svg>
+        Productos
+      </a>
+      <a href="#ventas" class="bottom-nav__link" data-page="ventas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
+        Ventas
+      </a>
+      <a href="#clientes" class="bottom-nav__link" data-page="clientes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        </svg>
+        Clientes
+      </a>
+      <a href="#reportes" class="bottom-nav__link" data-page="reportes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Reportes
+      </a>
+    </nav>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Modal container -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal" id="modal">
+      <div class="modal__header">
+        <h3 class="modal__title" id="modalTitle">Título</h3>
+        <button type="button" class="modal__close" id="modalClose" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal__body" id="modalBody"></div>
+      <div class="modal__footer" id="modalFooter"></div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
