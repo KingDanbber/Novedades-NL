@@ -20,6 +20,32 @@ initTheme();
 
 document.querySelector('[data-theme-toggle]')?.addEventListener('click', toggleTheme);
 
+// Password show/hide toggles
+document.querySelectorAll('[data-toggle-password]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const id = btn.getAttribute('data-toggle-password');
+    const input = document.getElementById(id);
+    if (!input) return;
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.setAttribute('aria-pressed', showing ? 'false' : 'true');
+    btn.setAttribute('aria-label', showing ? 'Mostrar contraseña' : 'Ocultar contraseña');
+    btn.setAttribute('title', showing ? 'Mostrar contraseña' : 'Ocultar contraseña');
+    const eye = btn.querySelector('.icon-eye');
+    const eyeOff = btn.querySelector('.icon-eye-off');
+    if (eye && eyeOff) {
+      if (showing) {
+        eye.hidden = false;
+        eyeOff.hidden = true;
+      } else {
+        eye.hidden = true;
+        eyeOff.hidden = false;
+      }
+    }
+  });
+});
+
+
 // ========== AUTH GATE ==========
 const authScreen = document.getElementById('authScreen');
 const appRoot = document.getElementById('appRoot');
