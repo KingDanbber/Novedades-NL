@@ -139,7 +139,9 @@ export function renderProducts() {
       </div>
       <div class="product-card__body">
         <div class="product-card__name" title="${p.name}">${p.name}</div>
-        <div class="product-card__meta">${store.getCategoryName(p.categoryId)}${p.brand ? ' · ' + p.brand : ''}${p.model ? ' · ' + p.model : ''}</div>
+        <div class="product-card__meta">${store.getCategoryName(p.categoryId)}${p.tags ? ' · ' + p.tags : ''}${p.brand ? ' · ' + p.brand : ''}${p.model ? ' · ' + p.model : ''}</div>
+        ${p.supplier ? `<div class="product-card__meta" style="font-size:0.75rem;">Proveedor: ${p.supplier}</div>` : ''}
+        ${p.purchaseDate ? `<div class="product-card__meta" style="font-size:0.75rem;">Compra: ${store.formatDate(p.purchaseDate)}</div>` : ''}
         <div class="product-card__prices">
           <span class="product-card__price">${store.formatCurrency(p.salePrice)}</span>
           <span class="product-card__stock ${p.stock <= 5 ? 'stock-low' : 'stock-ok'}">${p.stock} uds</span>
@@ -174,11 +176,27 @@ export function openProductForm(editId = null) {
     `<option value="${c.id}" ${product?.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`
   ).join('');
 
+  const today = new Date().toISOString().slice(0, 10);
   const body = `
     <form class="form" id="productForm">
       <div class="form__group">
         <label class="form__label">Categoría <span class="required">*</span></label>
         <select class="form__select" name="categoryId" required>${catOptions}</select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Etiqueta / Tipo general</label>
+        <select class="form__select" name="tags">
+          <option value="">— Ninguna —</option>
+          <option value="Electrónica" ${product?.tags === 'Electrónica' ? 'selected' : ''}>Electrónica</option>
+          <option value="Hogar" ${product?.tags === 'Hogar' ? 'selected' : ''}>Hogar</option>
+          <option value="Ropa" ${product?.tags === 'Ropa' ? 'selected' : ''}>Ropa</option>
+          <option value="Herramientas" ${product?.tags === 'Herramientas' ? 'selected' : ''}>Herramientas</option>
+          <option value="Navideño" ${product?.tags === 'Navideño' ? 'selected' : ''}>Navideño</option>
+          <option value="Cocina" ${product?.tags === 'Cocina' ? 'selected' : ''}>Cocina</option>
+          <option value="Tecnología" ${product?.tags === 'Tecnología' ? 'selected' : ''}>Tecnología</option>
+          <option value="Otros" ${product?.tags === 'Otros' ? 'selected' : ''}>Otros</option>
+        </select>
+        <p class="form__hint">Agrupación general para reportes (además de la categoría específica)</p>
       </div>
       <div class="form__group">
         <label class="form__label">Nombre / Descripción <span class="required">*</span></label>
@@ -198,19 +216,33 @@ export function openProductForm(editId = null) {
         <label class="form__label">Descripción adicional</label>
         <textarea class="form__textarea" name="description" placeholder="Especificaciones...">${product?.description || ''}</textarea>
       </div>
+      <div class="form__group">
+        <label class="form__label">Proveedor / Local de compra</label>
+        <input type="text" class="form__input" name="supplier" value="${product?.supplier || ''}" placeholder="Ej. China Shop, Fixez Accesorio">
+        <p class="form__hint">Negocio o local donde compraste el producto</p>
+      </div>
       <div class="form__row">
+        <div class="form__group">
+          <label class="form__label">Fecha de compra</label>
+          <input type="date" class="form__input" name="purchaseDate" value="${product?.purchaseDate || today}">
+          <p class="form__hint">Por defecto hoy. Puedes cambiarla</p>
+        </div>
         <div class="form__group">
           <label class="form__label">Stock inicial <span class="required">*</span></label>
           <input type="number" class="form__input" name="stock" min="0" required value="${product?.stock ?? 0}">
         </div>
+      </div>
+      <div class="form__row">
         <div class="form__group">
           <label class="form__label">Precio compra <span class="required">*</span></label>
           <input type="number" class="form__input" name="purchasePrice" min="0" step="0.01" required value="${product?.purchasePrice ?? ''}">
+          <p class="form__hint">Editable después si cambia</p>
         </div>
-      </div>
-      <div class="form__group">
-        <label class="form__label">Precio venta <span class="required">*</span></label>
-        <input type="number" class="form__input" name="salePrice" min="0" step="0.01" required value="${product?.salePrice ?? ''}">
+        <div class="form__group">
+          <label class="form__label">Precio venta <span class="required">*</span></label>
+          <input type="number" class="form__input" name="salePrice" min="0" step="0.01" required value="${product?.salePrice ?? ''}">
+          <p class="form__hint">Editable después si cambia</p>
+        </div>
       </div>
       <div class="form__group">
         <label class="form__label">Imagen del producto</label>
@@ -294,6 +326,9 @@ export function openProductForm(editId = null) {
         brand: fd.get('brand').trim(),
         model: fd.get('model').trim(),
         description: fd.get('description').trim(),
+        supplier: fd.get('supplier').trim(),
+        purchaseDate: fd.get('purchaseDate') || today,
+        tags: fd.get('tags') || '',
         stock: Number(fd.get('stock')),
         purchasePrice: Number(fd.get('purchasePrice')),
         salePrice: Number(fd.get('salePrice')),

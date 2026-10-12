@@ -117,6 +117,9 @@ function productToDb(p) {
     purchase_price: p.purchasePrice,
     sale_price: p.salePrice,
     image_url: p.imageUrl || null,
+    purchase_date: p.purchaseDate || null,
+    supplier: p.supplier || null,
+    tags: p.tags || null,
     created_at: p.createdAt || new Date().toISOString()
   };
 }
@@ -133,6 +136,9 @@ function productFromDb(row) {
     purchasePrice: Number(row.purchase_price) || 0,
     salePrice: Number(row.sale_price) || 0,
     imageUrl: row.image_url || '',
+    purchaseDate: row.purchase_date || '',
+    supplier: row.supplier || '',
+    tags: row.tags || '',
     createdAt: row.created_at
   };
 }
@@ -289,9 +295,13 @@ export function getProduct(id) {
 }
 
 export function addProduct(product) {
+  const today = new Date().toISOString().slice(0, 10);
   const newProduct = {
     id: generateId('prod'),
     createdAt: new Date().toISOString(),
+    purchaseDate: product.purchaseDate || today,
+    supplier: product.supplier || '',
+    tags: product.tags || '',
     ...product,
     stock: Number(product.stock) || 0,
     purchasePrice: Number(product.purchasePrice) || 0,
