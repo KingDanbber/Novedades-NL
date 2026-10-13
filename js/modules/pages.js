@@ -83,7 +83,9 @@ export function renderDashboard() {
       <tr>
         <td>${p.name}</td>
         <td>${store.getCategoryName(p.categoryId)}</td>
-        <td class="${p.stock <= 2 ? 'stock-low' : 'text-warning'}">${p.stock}</td>
+        <td class="${p.stock <= 2 ? 'stock-low' : 'text-warning'}">
+          ${p.stock}${p.unitsPerPackage > 1 ? ` paq · ${p.stock * p.unitsPerPackage} uds` : ''}
+        </td>
         <td>${store.formatCurrency(p.salePrice)}</td>
       </tr>
     `).join('');
@@ -163,7 +165,9 @@ export function renderProducts() {
         ${p.unitsPerPackage > 1 ? `<div class="product-card__meta" style="font-size:0.75rem;">${p.unitsPerPackage} uds por paquete</div>` : ''}
         <div class="product-card__prices">
           <span class="product-card__price">${store.formatCurrency(p.salePrice)}</span>
-          <span class="product-card__stock ${p.stock <= 5 ? 'stock-low' : 'stock-ok'}">${p.stock} ${p.unitsPerPackage > 1 ? 'paq' : 'uds'}</span>
+          <span class="product-card__stock ${p.stock <= 5 ? 'stock-low' : 'stock-ok'}">
+            ${p.stock} ${p.unitsPerPackage > 1 ? 'paq' : 'uds'}${p.unitsPerPackage > 1 ? ` · ${p.stock * p.unitsPerPackage} uds` : ''}
+          </span>
         </div>
         <div class="table__actions" style="margin-top: 0.5rem;">
           <button type="button" class="btn btn--ghost btn--sm btn-edit-product" data-id="${p.id}" title="Editar">${createIcon('edit', 16)}</button>
