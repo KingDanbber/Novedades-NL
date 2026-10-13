@@ -94,17 +94,26 @@ export function renderDashboard() {
 export function renderProducts() {
   const search = document.getElementById('productSearch')?.value?.toLowerCase() || '';
   const catFilter = document.getElementById('productCategoryFilter')?.value || '';
+  const supplierFilter = document.getElementById('productSupplierFilter')?.value || '';
+  const tagsFilter = document.getElementById('productTagsFilter')?.value || '';
 
   let products = store.getProducts();
   if (search) {
     products = products.filter(p =>
       p.name.toLowerCase().includes(search) ||
       (p.brand || '').toLowerCase().includes(search) ||
-      (p.model || '').toLowerCase().includes(search)
+      (p.model || '').toLowerCase().includes(search) ||
+      (p.supplier || '').toLowerCase().includes(search)
     );
   }
   if (catFilter) {
     products = products.filter(p => p.categoryId === catFilter);
+  }
+  if (supplierFilter) {
+    products = products.filter(p => (p.supplier || '') === supplierFilter);
+  }
+  if (tagsFilter) {
+    products = products.filter(p => (p.tags || '') === tagsFilter);
   }
 
   // Fill category filter
@@ -116,6 +125,15 @@ export function renderProducts() {
       opt.textContent = c.name;
       catSelect.appendChild(opt);
     });
+  }
+
+  // Fill supplier filter dynamically
+  const supplierSelect = document.getElementById('productSupplierFilter');
+  if (supplierSelect) {
+    const current = supplierSelect.value;
+    const suppliers = [...new Set(store.getProducts().map(p => p.supplier).filter(Boolean))].sort();
+    supplierSelect.innerHTML = '<option value="">Todos los proveedores</option>' +
+      suppliers.map(s => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('');
   }
 
   const grid = document.getElementById('productGrid');
@@ -142,9 +160,10 @@ export function renderProducts() {
         <div class="product-card__meta">${store.getCategoryName(p.categoryId)}${p.tags ? ' · ' + p.tags : ''}${p.brand ? ' · ' + p.brand : ''}${p.model ? ' · ' + p.model : ''}</div>
         ${p.supplier ? `<div class="product-card__meta" style="font-size:0.75rem;">Proveedor: ${p.supplier}</div>` : ''}
         ${p.purchaseDate ? `<div class="product-card__meta" style="font-size:0.75rem;">Compra: ${store.formatDate(p.purchaseDate)}</div>` : ''}
+        ${p.unitsPerPackage > 1 ? `<div class="product-card__meta" style="font-size:0.75rem;">${p.unitsPerPackage} uds por paquete</div>` : ''}
         <div class="product-card__prices">
           <span class="product-card__price">${store.formatCurrency(p.salePrice)}</span>
-          <span class="product-card__stock ${p.stock <= 5 ? 'stock-low' : 'stock-ok'}">${p.stock} uds</span>
+          <span class="product-card__stock ${p.stock <= 5 ? 'stock-low' : 'stock-ok'}">${p.stock} ${p.unitsPerPackage > 1 ? 'paq' : 'uds'}</span>
         </div>
         <div class="table__actions" style="margin-top: 0.5rem;">
           <button type="button" class="btn btn--ghost btn--sm btn-edit-product" data-id="${p.id}" title="Editar">${createIcon('edit', 16)}</button>
@@ -230,19 +249,25 @@ export function openProductForm(editId = null) {
         <div class="form__group">
           <label class="form__label">Stock inicial <span class="required">*</span></label>
           <input type="number" class="form__input" name="stock" min="0" required value="${product?.stock ?? 0}">
+          <p class="form__hint">Cantidad de paquetes/unidades que vendes</p>
         </div>
       </div>
       <div class="form__row">
         <div class="form__group">
-          <label class="form__label">Precio compra <span class="required">*</span></label>
-          <input type="number" class="form__input" name="purchasePrice" min="0" step="0.01" required value="${product?.purchasePrice ?? ''}">
-          <p class="form__hint">Editable después si cambia</p>
+          <label class="form__label">Unidades por paquete</label>
+          <input type="number" class="form__input" name="unitsPerPackage" min="1" step="1" value="${product?.unitsPerPackage ?? 1}">
+          <p class="form__hint">Ej. 4 si vendes paquetes de 4 pilas. Déjalo en 1 si vendes suelto.</p>
         </div>
         <div class="form__group">
-          <label class="form__label">Precio venta <span class="required">*</span></label>
-          <input type="number" class="form__input" name="salePrice" min="0" step="0.01" required value="${product?.salePrice ?? ''}">
-          <p class="form__hint">Editable después si cambia</p>
+          <label class="form__label">Precio compra <span class="required">*</span></label>
+          <input type="number" class="form__input" name="purchasePrice" min="0" step="0.01" required value="${product?.purchasePrice ?? ''}">
+          <p class="form__hint">Precio por paquete/unidad que vendes</p>
         </div>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Precio venta <span class="required">*</span></label>
+        <input type="number" class="form__input" name="salePrice" min="0" step="0.01" required value="${product?.salePrice ?? ''}">
+        <p class="form__hint">Precio al público por paquete/unidad. Editable después.</p>
       </div>
       <div class="form__group">
         <label class="form__label">Imagen del producto</label>
@@ -330,6 +355,7 @@ export function openProductForm(editId = null) {
         purchaseDate: fd.get('purchaseDate') || today,
         tags: fd.get('tags') || '',
         stock: Number(fd.get('stock')),
+        unitsPerPackage: Number(fd.get('unitsPerPackage')) || 1,
         purchasePrice: Number(fd.get('purchasePrice')),
         salePrice: Number(fd.get('salePrice')),
         imageUrl
@@ -879,6 +905,38 @@ export function renderReports() {
         <td>${store.formatCurrency(p.revenue)}</td>
       </tr>
     `).join('');
+  }
+
+  // Supplier purchases report
+  const supplierBody = document.querySelector('#supplierReportTable tbody');
+  if (supplierBody) {
+    const products = store.getProducts();
+    const bySupplier = {};
+    products.forEach(p => {
+      const sup = p.supplier || 'Sin proveedor';
+      if (!bySupplier[sup]) {
+        bySupplier[sup] = { count: 0, units: 0, investment: 0 };
+      }
+      bySupplier[sup].count += 1;
+      bySupplier[sup].units += p.stock || 0;
+      bySupplier[sup].investment += (p.stock || 0) * (p.purchasePrice || 0);
+    });
+
+    const rows = Object.entries(bySupplier)
+      .sort((a, b) => b[1].investment - a[1].investment);
+
+    if (rows.length === 0) {
+      supplierBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">Sin productos registrados</td></tr>`;
+    } else {
+      supplierBody.innerHTML = rows.map(([name, stats]) => `
+        <tr>
+          <td class="font-semibold">${name}</td>
+          <td>${stats.count}</td>
+          <td>${stats.units}</td>
+          <td>${store.formatCurrency(stats.investment)}</td>
+        </tr>
+      `).join('');
+    }
   }
 }
 

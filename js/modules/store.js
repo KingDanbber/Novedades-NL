@@ -53,7 +53,7 @@ function load() {
       supabaseUrl: 'https://wehscgjwcarditwoymut.supabase.co',
       supabaseKey: 'sb_publishable_Q_PziYnFZcUOio-YUCNzPA_257vcb1N',
       cloudName: 'dzh0gjzet',
-      cloudPreset: ''
+      cloudPreset: 'novedades_unsigned'
     }
   };
 }
@@ -120,6 +120,7 @@ function productToDb(p) {
     purchase_date: p.purchaseDate || null,
     supplier: p.supplier || null,
     tags: p.tags || null,
+    units_per_package: p.unitsPerPackage || 1,
     created_at: p.createdAt || new Date().toISOString()
   };
 }
@@ -139,6 +140,7 @@ function productFromDb(row) {
     purchaseDate: row.purchase_date || '',
     supplier: row.supplier || '',
     tags: row.tags || '',
+    unitsPerPackage: Number(row.units_per_package) || 1,
     createdAt: row.created_at
   };
 }
@@ -326,6 +328,7 @@ export function updateProduct(id, updates) {
   if (updates.stock !== undefined) data.products[idx].stock = Number(updates.stock);
   if (updates.purchasePrice !== undefined) data.products[idx].purchasePrice = Number(updates.purchasePrice);
   if (updates.salePrice !== undefined) data.products[idx].salePrice = Number(updates.salePrice);
+  if (updates.unitsPerPackage !== undefined) data.products[idx].unitsPerPackage = Number(updates.unitsPerPackage) || 1;
   save(data);
 
   if (isSupabaseConfigured()) {
