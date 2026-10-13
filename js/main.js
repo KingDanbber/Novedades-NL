@@ -181,6 +181,8 @@ function bindAppEvents() {
   document.getElementById('btnRestock')?.addEventListener('click', () => openRestockForm());
   document.getElementById('productSearch')?.addEventListener('input', () => renderProducts());
   document.getElementById('productCategoryFilter')?.addEventListener('change', () => renderProducts());
+  document.getElementById('productSupplierFilter')?.addEventListener('change', () => renderProducts());
+  document.getElementById('productTagsFilter')?.addEventListener('change', () => renderProducts());
 
   document.getElementById('btnAddClient')?.addEventListener('click', () => openClientForm());
   document.getElementById('clientSearch')?.addEventListener('input', () => renderClients());
