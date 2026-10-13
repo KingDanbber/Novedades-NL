@@ -277,6 +277,20 @@
             <select class="form__select" id="productCategoryFilter" style="max-width: 10rem;">
               <option value="">Todas las categorías</option>
             </select>
+            <select class="form__select" id="productSupplierFilter" style="max-width: 10rem;">
+              <option value="">Todos los proveedores</option>
+            </select>
+            <select class="form__select" id="productTagsFilter" style="max-width: 10rem;">
+              <option value="">Todas las etiquetas</option>
+              <option value="Electrónica">Electrónica</option>
+              <option value="Hogar">Hogar</option>
+              <option value="Ropa">Ropa</option>
+              <option value="Herramientas">Herramientas</option>
+              <option value="Navideño">Navideño</option>
+              <option value="Cocina">Cocina</option>
+              <option value="Tecnología">Tecnología</option>
+              <option value="Otros">Otros</option>
+            </select>
           </div>
 
           <div class="product-grid" id="productGrid">
@@ -415,6 +429,25 @@
               </table>
             </div>
           </div>
+
+          <div class="section">
+            <div class="section__header">
+              <h3 class="section__title">Compras por proveedor</h3>
+            </div>
+            <div class="table-wrapper">
+              <table class="table" id="supplierReportTable">
+                <thead>
+                  <tr>
+                    <th>Proveedor</th>
+                    <th>Productos</th>
+                    <th>Unidades</th>
+                    <th>Inversión</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <!-- CONFIG -->
@@ -462,7 +495,7 @@
               </div>
               <div class="form__group">
                 <label class="form__label" for="cloudPreset">Upload Preset (unsigned)</label>
-                <input type="text" class="form__input" id="cloudPreset" placeholder="ml_default">
+                <input type="text" class="form__input" id="cloudPreset" placeholder="novedades_unsigned" value="novedades_unsigned">
                 <p class="form__hint">Crea un upload preset unsigned en Cloudinary Settings → Upload</p>
               </div>
               <div class="form__actions">
