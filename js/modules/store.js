@@ -152,6 +152,8 @@ function clientToDb(c) {
     area: c.area || null,
     whatsapp: c.whatsapp || null,
     notes: c.notes || null,
+    seller_id: c.sellerId || null,
+    seller_name: c.sellerName || null,
     created_at: c.createdAt || new Date().toISOString()
   };
 }
@@ -163,6 +165,8 @@ function clientFromDb(row) {
     area: row.area || '',
     whatsapp: row.whatsapp || '',
     notes: row.notes || '',
+    sellerId: row.seller_id || null,
+    sellerName: row.seller_name || '',
     createdAt: row.created_at
   };
 }

@@ -441,7 +441,7 @@ export function renderClients() {
 
   const tbody = document.querySelector('#clientsTable tbody');
   if (clients.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">Sin clientes registrados</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Sin clientes registrados</td></tr>`;
     return;
   }
 
@@ -456,6 +456,7 @@ export function renderClients() {
             </a>`
           : '—'}
       </td>
+      <td>${c.sellerName || '—'}</td>
       <td>
         <div class="table__actions">
           <button type="button" class="btn btn--ghost btn--sm btn-edit-client" data-id="${c.id}" title="Editar">${createIcon('edit', 16)}</button>
@@ -481,6 +482,7 @@ export function renderClients() {
 
 export function openClientForm(editId = null) {
   const client = editId ? store.getClient(editId) : null;
+  const user = getCurrentUser();
 
   const body = `
     <form class="form" id="clientForm">
@@ -489,8 +491,8 @@ export function openClientForm(editId = null) {
         <input type="text" class="form__input" name="name" required value="${client?.name || ''}" placeholder="Nombre completo">
       </div>
       <div class="form__group">
-        <label class="form__label">Área / Colonia</label>
-        <input type="text" class="form__input" name="area" value="${client?.area || ''}" placeholder="Ej. Centro, GAM">
+        <label class="form__label">Área/Parentesco/Colonia</label>
+        <input type="text" class="form__input" name="area" value="${client?.area || ''}" placeholder="Ej. Centro, Hermano, Hijo, GAM">
       </div>
       <div class="form__group">
         <label class="form__label">WhatsApp</label>
@@ -501,6 +503,18 @@ export function openClientForm(editId = null) {
         <label class="form__label">Notas</label>
         <textarea class="form__textarea" name="notes">${client?.notes || ''}</textarea>
       </div>
+      ${!editId ? `
+      <div class="form__group">
+        <label class="form__label">Registrado por</label>
+        <input type="text" class="form__input" value="${user?.name || '—'}" readonly style="opacity:0.8;background:var(--color-bg-elevated);">
+        <p class="form__hint">Se guarda automáticamente el usuario que está logueado</p>
+      </div>
+      ` : (client?.sellerName ? `
+      <div class="form__group">
+        <label class="form__label">Registrado por</label>
+        <input type="text" class="form__input" value="${client.sellerName}" readonly style="opacity:0.8;background:var(--color-bg-elevated);">
+      </div>
+      ` : '')}
     </form>
   `;
 
@@ -526,6 +540,8 @@ export function openClientForm(editId = null) {
       store.updateClient(editId, payload);
       showToast('Cliente actualizado', 'success');
     } else {
+      payload.sellerId = user?.id || null;
+      payload.sellerName = user?.name || '—';
       store.addClient(payload);
       showToast('Cliente agregado', 'success');
     }
