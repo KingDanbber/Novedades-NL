@@ -638,11 +638,19 @@ export function openSaleForm() {
       </div>
       <div class="form__group">
         <label class="form__label">Cliente <span class="required">*</span></label>
-        <select class="form__select" name="clientId" required>${clientOpts}</select>
+        <div class="search-select" id="clientSearchSelect">
+          <input type="text" class="form__input" id="clientSearchInput" placeholder="Buscar cliente por nombre..." autocomplete="off">
+          <input type="hidden" name="clientId" id="clientIdHidden" required>
+          <div class="search-select__list" id="clientSearchList" hidden></div>
+        </div>
       </div>
       <div class="form__group">
         <label class="form__label">Producto <span class="required">*</span></label>
-        <select class="form__select" id="saleProductSelect">${productOpts}</select>
+        <div class="search-select" id="productSearchSelect">
+          <input type="text" class="form__input" id="productSearchInput" placeholder="Buscar producto por nombre..." autocomplete="off">
+          <input type="hidden" id="productIdHidden">
+          <div class="search-select__list" id="productSearchList" hidden></div>
+        </div>
       </div>
       <div class="form__row">
         <div class="form__group">
@@ -687,6 +695,72 @@ export function openSaleForm() {
 
   openModal('Nueva venta', body, footer);
 
+  // Searchable selects
+  function setupSearchSelect(inputId, listId, hiddenId, items, renderItem, onSelect) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+    const hidden = document.getElementById(hiddenId);
+    let selected = null;
+
+    function showList(filter = '') {
+      const q = filter.toLowerCase();
+      const filtered = items.filter(item => renderItem(item).text.toLowerCase().includes(q));
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="search-select__item search-select__item--empty">Sin resultados</div>`;
+      } else {
+        list.innerHTML = filtered.map(item => {
+          const r = renderItem(item);
+          return `<div class="search-select__item" data-id="${r.id}">${r.html}</div>`;
+        }).join('');
+      }
+      list.hidden = false;
+      list.querySelectorAll('.search-select__item[data-id]').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = el.dataset.id;
+          selected = items.find(i => i.id === id);
+          if (selected) {
+            const r = renderItem(selected);
+            input.value = r.text;
+            hidden.value = id;
+            list.hidden = true;
+            if (onSelect) onSelect(selected);
+          }
+        });
+      });
+    }
+
+    input.addEventListener('input', () => showList(input.value));
+    input.addEventListener('focus', () => showList(input.value));
+    document.addEventListener('click', (e) => {
+      if (!input.contains(e.target) && !list.contains(e.target)) list.hidden = true;
+    });
+
+    return { getSelected: () => selected };
+  }
+
+  const clientSelect = setupSearchSelect(
+    'clientSearchInput',
+    'clientSearchList',
+    'clientIdHidden',
+    clients,
+    (c) => ({ id: c.id, text: c.name, html: `<strong>${c.name}</strong>${c.area ? `<br><small style="color:var(--color-text-muted)">${c.area}</small>` : ''}` }),
+    null
+  );
+
+  let selectedProduct = null;
+  const productSelect = setupSearchSelect(
+    'productSearchInput',
+    'productSearchList',
+    'productIdHidden',
+    products,
+    (p) => ({
+      id: p.id,
+      text: p.name,
+      html: `<strong>${p.name}</strong><br><small style="color:var(--color-text-muted)">${store.formatCurrency(p.salePrice)} · stock: ${p.stock}${p.unitsPerPackage > 1 ? ` (${p.unitsPerPackage} uds/paq)` : ''}</small>`
+    }),
+    (p) => { selectedProduct = p; }
+  );
+
   let cart = [];
 
   function updateCartUI() {
@@ -717,31 +791,35 @@ export function openSaleForm() {
   }
 
   document.getElementById('btnAddItem')?.addEventListener('click', () => {
-    const select = document.getElementById('saleProductSelect');
     const qty = Number(document.getElementById('saleQty').value) || 1;
-    const opt = select.selectedOptions[0];
-    if (!opt) return;
-    const stock = Number(opt.dataset.stock);
-    if (qty > stock) {
-      showToast(`Stock insuficiente (máx ${stock})`, 'error');
+    const prod = productSelect.getSelected();
+    if (!prod) {
+      showToast('Selecciona un producto', 'error');
       return;
     }
-    const existing = cart.find(i => i.productId === select.value);
+    if (qty > prod.stock) {
+      showToast(`Stock insuficiente (máx ${prod.stock})`, 'error');
+      return;
+    }
+    const existing = cart.find(i => i.productId === prod.id);
     if (existing) {
-      if (existing.quantity + qty > stock) {
-        showToast(`Stock insuficiente`, 'error');
+      if (existing.quantity + qty > prod.stock) {
+        showToast('Stock insuficiente', 'error');
         return;
       }
       existing.quantity += qty;
     } else {
       cart.push({
-        productId: select.value,
-        name: opt.textContent.split(' — ')[0],
+        productId: prod.id,
+        name: prod.name,
         quantity: qty,
-        unitPrice: Number(opt.dataset.price)
+        unitPrice: prod.salePrice
       });
     }
     updateCartUI();
+    document.getElementById('productSearchInput').value = '';
+    document.getElementById('productIdHidden').value = '';
+    productSelect.getSelected = () => null;
   });
 
   document.getElementById('modalCancel')?.addEventListener('click', closeModal);
