@@ -573,8 +573,10 @@ export function renderSales() {
   }
 
   const statusBadge = {
-    paid: '<span class="badge badge--success">Pagado</span>',
+    paid: '<span class="badge badge--success">Pagada</span>',
     partial: '<span class="badge badge--warning">Parcial</span>',
+    delivered: '<span class="badge badge--info">Entregada</span>',
+    confirmed: '<span class="badge badge--secondary">Confirmada</span>',
     pending: '<span class="badge badge--danger">Pendiente</span>'
   };
 
@@ -599,6 +601,12 @@ export function renderSales() {
             <button type="button" class="btn btn--ghost btn--sm btn-view-sale" data-id="${s.id}" title="Ver / Pagar">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
+            <button type="button" class="btn btn--ghost btn--sm btn-edit-sale" data-id="${s.id}" title="Editar venta">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm btn-ticket-sale" data-id="${s.id}" title="Descargar ticket">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </button>
           </div>
         </td>
       </tr>
@@ -607,6 +615,12 @@ export function renderSales() {
 
   tbody.querySelectorAll('.btn-view-sale').forEach(btn => {
     btn.addEventListener('click', () => openSaleDetail(btn.dataset.id));
+  });
+  tbody.querySelectorAll('.btn-edit-sale').forEach(btn => {
+    btn.addEventListener('click', () => openEditSale(btn.dataset.id));
+  });
+  tbody.querySelectorAll('.btn-ticket-sale').forEach(btn => {
+    btn.addEventListener('click', () => downloadSaleTicket(btn.dataset.id));
   });
 }
 
@@ -848,6 +862,118 @@ export function openSaleForm() {
     closeModal();
     renderSales();
   });
+}
+
+export function openEditSale(saleId) {
+  const sale = store.getSale(saleId);
+  if (!sale) return;
+
+  const body = `
+    <form class="form" id="editSaleForm">
+      <div class="form__group">
+        <label class="form__label">Estado</label>
+        <select class="form__select" name="status">
+          <option value="confirmed" ${sale.status === 'confirmed' ? 'selected' : ''}>Confirmada</option>
+          <option value="delivered" ${sale.status === 'delivered' ? 'selected' : ''}>Entregada</option>
+          <option value="partial" ${sale.status === 'partial' ? 'selected' : ''}>Parcial</option>
+          <option value="paid" ${sale.status === 'paid' ? 'selected' : ''}>Pagada</option>
+          <option value="pending" ${sale.status === 'pending' ? 'selected' : ''}>Pendiente</option>
+        </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Total pagado (corregir si hubo error)</label>
+        <input type="number" class="form__input" name="paid" min="0" step="0.01" value="${sale.paid}">
+        <p class="form__hint">Total de la venta: ${store.formatCurrency(sale.total)}</p>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Notas</label>
+        <textarea class="form__textarea" name="notes">${sale.notes || ''}</textarea>
+      </div>
+    </form>
+  `;
+
+  const footer = `
+    <button type="button" class="btn btn--secondary" id="modalCancel">Cancelar</button>
+    <button type="button" class="btn btn--primary" id="modalSaveEdit">Guardar cambios</button>
+  `;
+
+  openModal('Editar venta', body, footer);
+
+  document.getElementById('modalCancel')?.addEventListener('click', closeModal);
+  document.getElementById('modalSaveEdit')?.addEventListener('click', () => {
+    const form = document.getElementById('editSaleForm');
+    const fd = new FormData(form);
+    const paid = Number(fd.get('paid'));
+    const status = fd.get('status');
+    store.updateSale(saleId, {
+      paid,
+      status,
+      notes: fd.get('notes').trim()
+    });
+    showToast('Venta actualizada', 'success');
+    closeModal();
+    renderSales();
+  });
+}
+
+export function downloadSaleTicket(saleId) {
+  const sale = store.getSale(saleId);
+  if (!sale) return;
+  const client = store.getClient(sale.clientId);
+  const payments = store.getPayments(saleId);
+  const remaining = Math.max(0, sale.total - sale.paid);
+
+  const statusLabel = {
+    paid: 'PAGADA',
+    partial: 'PAGO PARCIAL',
+    delivered: 'ENTREGADA (pendiente de pago)',
+    confirmed: 'CONFIRMADA',
+    pending: 'PENDIENTE'
+  }[sale.status] || sale.status.toUpperCase();
+
+  const items = sale.items.map(item => {
+    const p = store.getProduct(item.productId);
+    return `${p?.name || 'Producto'} x${item.quantity}  ${store.formatCurrency(item.subtotal)}`;
+  }).join('\n');
+
+  const payLines = payments.map(p =>
+    `${store.formatDate(p.paymentDate)}  ${store.formatCurrency(p.amount)}  (${p.method || '—'})`
+  ).join('\n') || 'Sin pagos registrados';
+
+  const ticket = `
+NOVEDADES N&L
+========================
+Fecha: ${store.formatDate(sale.createdAt)}
+Cliente: ${client?.name || '—'}
+Área: ${client?.area || '—'}
+Vendedor: ${sale.sellerName || '—'}
+
+PRODUCTOS
+${items}
+
+------------------------
+Total:     ${store.formatCurrency(sale.total)}
+Pagado:    ${store.formatCurrency(sale.paid)}
+Pendiente: ${store.formatCurrency(remaining)}
+
+ESTADO: ${statusLabel}
+
+PAGOS
+${payLines}
+
+${sale.notes ? 'Notas: ' + sale.notes + '\n' : ''}
+Gracias por tu compra
+Novedades N&L
+`.trim();
+
+  const blob = new Blob([ticket], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ticket-${sale.id.slice(-8)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Ticket descargado', 'success');
 }
 
 export function openSaleDetail(saleId) {

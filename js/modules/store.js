@@ -421,6 +421,33 @@ export function getSale(id) {
   return data.sales.find(s => s.id === id) || null;
 }
 
+export function updateSale(id, updates) {
+  const idx = data.sales.findIndex(s => s.id === id);
+  if (idx === -1) return null;
+  data.sales[idx] = { ...data.sales[idx], ...updates };
+  // Recalculate status if paid changed
+  if (updates.paid !== undefined) {
+    const paid = Number(updates.paid);
+    const total = data.sales[idx].total;
+    if (paid >= total) data.sales[idx].status = 'paid';
+    else if (paid > 0) data.sales[idx].status = data.sales[idx].status === 'delivered' ? 'delivered' : 'partial';
+    else data.sales[idx].status = updates.status || 'pending';
+  }
+  save(data);
+
+  if (isSupabaseConfigured()) {
+    sbFetch(`sales?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        paid: data.sales[idx].paid,
+        status: data.sales[idx].status,
+        notes: data.sales[idx].notes || null
+      })
+    }).catch(err => console.error('Supabase updateSale', err));
+  }
+  return data.sales[idx];
+}
+
 export function addSale(sale) {
   const items = (sale.items || []).map(item => ({
     productId: item.productId,
