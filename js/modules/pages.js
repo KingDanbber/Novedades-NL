@@ -749,7 +749,14 @@ export function openSaleForm() {
       if (!input.contains(e.target) && !list.contains(e.target)) list.hidden = true;
     });
 
-    return { getSelected: () => selected };
+    return {
+      getSelected: () => selected,
+      clear: () => {
+        selected = null;
+        input.value = '';
+        hidden.value = '';
+      }
+    };
   }
 
   const clientSelect = setupSearchSelect(
@@ -831,9 +838,7 @@ export function openSaleForm() {
       });
     }
     updateCartUI();
-    document.getElementById('productSearchInput').value = '';
-    document.getElementById('productIdHidden').value = '';
-    productSelect.getSelected = () => null;
+    productSelect.clear();
   });
 
   document.getElementById('modalCancel')?.addEventListener('click', closeModal);
