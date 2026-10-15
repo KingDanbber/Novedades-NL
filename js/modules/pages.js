@@ -1043,14 +1043,23 @@ export function openSaleDetail(saleId) {
     ` : '<p class="text-success font-semibold">✓ Venta completamente pagada</p>'}
   `;
 
-  const footer = remaining > 0
-    ? `<button type="button" class="btn btn--secondary" id="modalCancel">Cerrar</button>
-       <button type="button" class="btn btn--primary" id="modalAddPayment">Registrar pago</button>`
-    : `<button type="button" class="btn btn--secondary" id="modalCancel">Cerrar</button>`;
+  const canMarkDelivered = sale.status !== 'delivered' && sale.status !== 'paid';
+
+  const footer = `
+    <button type="button" class="btn btn--secondary" id="modalCancel">Cerrar</button>
+    ${canMarkDelivered ? `<button type="button" class="btn btn--secondary" id="modalMarkDelivered">Marcar entregada</button>` : ''}
+    ${remaining > 0 ? `<button type="button" class="btn btn--primary" id="modalAddPayment">Registrar pago</button>` : ''}
+  `;
 
   openModal('Detalle de venta', body, footer);
 
   document.getElementById('modalCancel')?.addEventListener('click', closeModal);
+  document.getElementById('modalMarkDelivered')?.addEventListener('click', () => {
+    store.updateSale(saleId, { status: 'delivered' });
+    showToast('Marcada como entregada', 'success');
+    closeModal();
+    renderSales();
+  });
   document.getElementById('modalAddPayment')?.addEventListener('click', () => {
     const form = document.getElementById('paymentForm');
     if (!form?.checkValidity()) { form?.reportValidity(); return; }
